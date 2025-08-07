@@ -13,8 +13,6 @@ from pagermaid.services import bot
 from pagermaid.static import working_dir
 from pagermaid.utils import lang, safe_remove, logs
 from pagermaid.utils.listener import process_exit
-from pagermaid.web import web
-from pagermaid.web.api.web_login import web_login
 from pyromod.methods.sign_in_qrcode import start_client
 
 bot.PARENT_DIR = Path(working_dir)
@@ -25,20 +23,14 @@ async def idle():
     task = None
 
     def signal_handler(_, __):
-        if web.web_server_task:
-            web.web_server_task.cancel()
         task.cancel()
 
     for s in (SIGINT, SIGTERM, SIGABRT):
         signal_fn(s, signal_handler)
 
     while True:
-        if Config.WEB_ENABLE and Config.WEB_LOGIN:
-            t = asyncio.sleep(600)
-        else:
-            t = bot._run_until_disconnected()
+        t = bot._run_until_disconnected()
         task = asyncio.create_task(t)
-        web.bot_main_task = task
         try:
             await task
         except asyncio.CancelledError:
@@ -61,31 +53,12 @@ async def console_bot():
     await process_exit(start=True, _client=bot)
 
 
-async def web_bot():
-    try:
-        await web_login.init()
-    except AuthKeyError:
-        safe_remove(SESSION_PATH)
-        exit()
-    if bot.me is not None:
-        me = await bot.get_me()
-        if me.bot:
-            safe_remove(SESSION_PATH)
-            exit()
-    else:
-        logs.info("Please use web to login, path: web_login .")
-
-
 async def main():
     logs.info(lang("platform") + platform + lang("platform_load"))
     if not scheduler.running:
         scheduler.start()
-    await web.start()
-    if not (Config.WEB_ENABLE and Config.WEB_LOGIN):
-        await console_bot()
-        logs.info(lang("start"))
-    else:
-        await web_bot()
+    await console_bot()
+    logs.info(lang("start"))
     try:
         await idle()
     finally:
@@ -95,11 +68,6 @@ async def main():
             await bot.disconnect()
         except ConnectionError:
             pass
-        if web.web_server:
-            try:
-                await web.web_server.shutdown()
-            except AttributeError:
-                pass
 
 
 bot.loop.run_until_complete(main())

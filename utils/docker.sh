@@ -56,56 +56,10 @@ build_docker () {
     docker pull teampgm/pagermaid_modify
 }
 
-need_web () {
-  PGM_WEB=false
-  printf "请问是否需要启用 Web 管理界面 [Y/n] ："
-  read -r web <&1
-  case $web in
-      [yY][eE][sS] | [yY])
-          echo "您已确认需要启用 Web 管理界面 . . ."
-          PGM_WEB=true
-          printf "请输入管理员密码（如果不需要密码请直接回车）："
-          read -r admin_password <&1
-          ;;
-      [nN][oO] | [nN])
-          ;;
-      *)
-          echo "输入错误，已跳过。"
-          ;;
-  esac
-}
-
-need_web_login () {
-  PGM_WEB_LOGIN=false
-  case $PGM_WEB in
-      true)
-        printf "请问是否需要启用通过 Web 登录？（不建议开启） [Y/n] ："
-        read -r web_login <&1
-        case $web_login in
-            [yY][eE][sS] | [yY])
-                echo "您已确认需要启用 Web 登录界面 . . ."
-                PGM_WEB_LOGIN=true
-                ;;
-            [nN][oO] | [nN])
-                ;;
-            *)
-                echo "输入错误，已跳过。"
-                ;;
-        esac
-        ;;
-  esac
-}
 
 start_docker () {
     echo "正在启动 Docker 容器 . . ."
-    case $PGM_WEB in
-        true)
-            docker run -dit --restart=always --name="$container_name" --hostname="$container_name" -e WEB_ENABLE="$PGM_WEB" -e WEB_SECRET_KEY="$admin_password" -e WEB_HOST=0.0.0.0 -e WEB_PORT=3333 -e WEB_LOGIN="$PGM_WEB_LOGIN" -p 3333:3333 teampgm/pagermaid_modify <&1
-            ;;
-        *)
-            docker run -dit --restart=always --name="$container_name" --hostname="$container_name" teampgm/pagermaid_modify <&1
-            ;;
-    esac
+    docker run -dit --restart=always --name="$container_name" --hostname="$container_name" teampgm/pagermaid_modify <&1
     echo
     echo "开始配置参数 . . ."
     echo "在登录后，请按 Ctrl + C 使容器在后台模式下重新启动。"
@@ -174,14 +128,7 @@ data_persistence () {
             docker rm "$container_name" &>/dev/null
 
             # 启动新容器
-            case $PGM_WEB in
-                 true)
-                     docker run -dit $mount_args --restart=always --name="$container_name" --hostname="$container_name" -e WEB_ENABLE="$PGM_WEB" -e WEB_SECRET_KEY="$admin_password" -e WEB_HOST=0.0.0.0 -e WEB_PORT=3333 -p 3333:3333 teampgm/pagermaid_modify <&1
-                     ;;
-                 *)
-                     docker run -dit $mount_args --restart=always --name="$container_name" --hostname="$container_name" teampgm/pagermaid_modify <&1
-                     ;;
-            esac
+            docker run -dit $mount_args --restart=always --name="$container_name" --hostname="$container_name" teampgm/pagermaid_modify <&1
 
             echo
             echo "数据持久化操作完成。"
@@ -201,8 +148,6 @@ start_installation () {
     docker_check
     access_check
     build_docker
-    need_web
-    need_web_login
     start_docker
     data_persistence
 }
@@ -270,8 +215,6 @@ restart_pager () {
 reinstall_pager () {
     cleanup
     build_docker
-    need_web
-    need_web_login
     start_docker
     data_persistence
 }
