@@ -64,11 +64,6 @@ update_delete: "True"
 # ipv6
 ipv6: "False"
 
-# Analytics
-allow_analytic: "True"
-sentry_api: ""
-mixpanel_api: ""
-
 # Speed_test cli path
 speed_test_path: ""
 

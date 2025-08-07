@@ -71,15 +71,6 @@ class Config:
         LOG = strtobool(os.environ.get("PGM_LOG", config["log"]))
         LOG_ID = os.environ.get("PGM_LOG_ID", config["log_chatid"])
         IPV6 = strtobool(os.environ.get("PGM_IPV6", config["ipv6"]))
-        ALLOW_ANALYTIC = strtobool(
-            os.environ.get("PGM_ALLOW_ANALYTIC", config["allow_analytic"]), True
-        )
-        SENTRY_API = os.environ.get("SENTRY_API", config.get("sentry_api", ""))
-        if not SENTRY_API:
-            SENTRY_API = "https://79584904859c93d48dbc71d73e76a51a@o416616.ingest.sentry.io/4506478732443653"
-        MIXPANEL_API = os.environ.get("MIXPANEL_API", config.get("mixpanel_api"))
-        if not MIXPANEL_API:
-            MIXPANEL_API = "459938db79c5a7e24508c16d90605fca"
         TIME_FORM = os.environ.get("PGM_TIME_FORM", config["time_form"])
         DATE_FORM = os.environ.get("PGM_DATE_FORM", config["date_form"])
         START_FORM = os.environ.get("PGM_START_FORM", config["start_form"])

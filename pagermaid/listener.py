@@ -38,7 +38,6 @@ from pagermaid.utils.listener import (
     process_exit,
     format_exc as format_exc_text,
 )
-from pagermaid.web import web
 from pyromod.utils.handler_priority import HandlerList
 
 _lock = asyncio.Lock()
@@ -206,7 +205,6 @@ def listener(**args) -> CommandHandlerDecorator:
             except (SystemExit, CancelledError):
                 await process_exit(start=False, _client=context.client, message=context)
                 await Hook.shutdown()
-                web.stop()
             except BaseException as exc:
                 exc_info = sys.exc_info()[1]
                 exc_format = format_exc()
