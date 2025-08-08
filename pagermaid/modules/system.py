@@ -4,6 +4,7 @@ import html
 from getpass import getuser
 from os.path import exists, sep
 from platform import node
+from sys import exit
 from time import perf_counter
 
 from pagermaid.common.system import run_eval, paste_pb
@@ -74,6 +75,7 @@ async def restart(message: Message):
     if not message.text[0].isalpha():
         await message.edit(lang("restart_log"))
         await message.client.disconnect()
+        exit(0)
 
 
 @listener(
