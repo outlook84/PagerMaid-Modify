@@ -1,7 +1,6 @@
 """System related utilities for PagerMaid to integrate into the system."""
 
 import html
-import sys
 from getpass import getuser
 from os.path import exists, sep
 from platform import node
@@ -75,7 +74,8 @@ async def restart(message: Message):
     """To re-execute PagerMaid."""
     if not message.text[0].isalpha():
         await message.edit(lang("restart_log"))
-        sys.exit(0)
+        await message.client.disconnect()
+        exit(0)
 
 
 @listener(
