@@ -2,10 +2,8 @@ from typing import TYPE_CHECKING
 
 from telethon.errors import RPCError
 
-from pagermaid.dependence import status_sudo, get_sudo_list, sqlite
+from pagermaid.dependence import status_sudo, get_sudo_list
 from pagermaid.group_manager import enforce_permission
-from pagermaid.utils import logs
-from ._config_utils import lang
 
 if TYPE_CHECKING:
     from pagermaid.enums import Message
@@ -58,41 +56,6 @@ def check_manage_subs(message: "Message") -> bool:
     return from_self(message) or enforce_permission(
         from_msg_get_sudo_uid(message), "modules.manage_subs"
     )
-
-async def process_exit(start: int, _client, message=None):
-    try:
-        logs.info("[process_exit] reading exit_msg from sqlite...")
-        raw = sqlite.get("exit_msg")
-        logs.info(f"[process_exit] raw exit_msg type: {type(raw)}, repr: {repr(raw)[:200]}")  # 截断防止日志过长
-        data = dict(raw) if raw else {}
-        logs.info(f"[process_exit] exit_msg data: {data}")
-    except Exception as e:
-        logs.error(f"[process_exit] failed to read exit_msg: {e!r}")
-        data = {}
-
-    cid, mid = data.get("cid", 0), data.get("mid", 0)
-    if start and data and cid and mid:
-        try:
-            logs.info(f"[process_exit] fetching message cid={cid}, mid={mid} ...")
-            msg = await _client.get_messages(cid, ids=mid)
-            logs.info(f"[process_exit] fetched message: {msg}")
-            if msg:
-                await msg.edit(
-                    (msg.text if from_self(msg) and msg.text else "")
-                    + f"\n\n> {lang('restart_complete')}",
-                    parse_mode='md'
-                )
-                logs.info("[process_exit] message edited")
-        except Exception as e:
-            logs.error(f"[process_exit] restore message failed: {e!r}")
-        finally:
-            if "exit_msg" in sqlite:
-                del sqlite["exit_msg"]
-                logs.info("[process_exit] exit_msg deleted")
-
-    if message:
-        sqlite["exit_msg"] = {"cid": message.chat_id, "mid": message.id}
-        logs.info(f"[process_exit] exit_msg updated: {sqlite['exit_msg']}")
 
 
 def format_exc(e: BaseException) -> str:
