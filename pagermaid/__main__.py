@@ -64,10 +64,15 @@ async def main():
     finally:
         if scheduler.running:
             scheduler.shutdown()
-        try:
-            await bot.disconnect()
-        except ConnectionError:
-            pass
+
+        if bot.is_connected():
+            try:
+                await bot.disconnect()
+            except ConnectionError:
+                pass
+
+        if getattr(bot, "_should_restart", False):
+            exit(0)
 
 
 bot.loop.run_until_complete(main())

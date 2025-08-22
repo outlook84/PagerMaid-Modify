@@ -74,8 +74,11 @@ async def restart(message: Message):
     """To re-execute PagerMaid."""
     if not message.text[0].isalpha():
         await message.edit(lang("restart_log"))
-        await message.client.disconnect()
-        exit(0)
+        message.client._should_restart = True
+        try:
+            await message.client.disconnect()
+        except ConnectionError:
+            pass
 
 
 @listener(
