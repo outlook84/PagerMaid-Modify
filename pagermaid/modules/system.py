@@ -52,6 +52,7 @@ async def sh(message: "Message"):
 
     if result:
         final_result = None
+        url = None
         if len(result) > 3072:
             if Config.USE_PB:
                 url = await paste_pb(result)
@@ -63,10 +64,16 @@ async def sh(message: "Message"):
         if (len(result) > 3072 and not Config.USE_PB) or final_result is None:
             await attach_log(result, message.chat_id, "output.log", message.id)
             return
-        await message.edit(
-            f"`{user}`@{hostname} ~\n> `#` {command}\n\n```\n{final_result}\n```",
+        if url:
+            await message.edit(
+                    f"`{user}`@{hostname} ~\n> `#` {command}\n\n`{final_result}`",
             parse_mode="md",
-        )
+            )
+        else:
+            await message.edit(
+                f"`{user}`@{hostname} ~\n> `#` {command}\n\n```\n{final_result}\n```",
+                parse_mode="md",
+            )
     else:
         return
 
