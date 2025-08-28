@@ -71,13 +71,13 @@ socksio==1.0.0
     # via httpx
 sqlitedict==2.1.0
     # via pagermaid-modify
-telethon @ git+https://github.com/TeamPGM/Telethon@31cf85f81f47b33263c7a6064038936d1443201e
+telethon @ git+https://github.com/TeamPGM/Telethon@66bd335130f847b9c02b0ebe9c9da8a566958164
     # via pagermaid-modify
 typing-extensions==4.13.2 ; python_full_version < '3.9'
     # via
     #   anyio
     #   exceptiongroup
-typing-extensions==4.14.1 ; python_full_version >= '3.9' and python_full_version < '3.13'
+typing-extensions==4.15.0 ; python_full_version >= '3.9' and python_full_version < '3.13'
     # via
     #   anyio
     #   exceptiongroup
