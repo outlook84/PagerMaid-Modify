@@ -60,7 +60,7 @@ pyyaml==6.0.2
     # via pagermaid-modify
 rsa==4.9.1
     # via telethon
-ruff==0.12.10
+ruff==0.12.12
 simpleeval==0.9.13 ; python_full_version < '3.9'
     # via casbin
 simpleeval==1.0.3 ; python_full_version >= '3.9'
@@ -71,7 +71,7 @@ socksio==1.0.0
     # via httpx
 sqlitedict==2.1.0
     # via pagermaid-modify
-telethon @ git+https://github.com/TeamPGM/Telethon@66bd335130f847b9c02b0ebe9c9da8a566958164
+telethon @ git+https://github.com/TeamPGM/Telethon@aaf2bb819db3b782ea47d1a44660aa92fbd28862
     # via pagermaid-modify
 typing-extensions==4.13.2 ; python_full_version < '3.9'
     # via
