@@ -36,6 +36,7 @@ from pagermaid.utils.bot_utils import attach_report
 from pagermaid.utils.listener import (
     get_permission_name,
     format_exc as format_exc_text,
+    sudo_filter,
 )
 from pyromod.utils.handler_priority import HandlerList
 
@@ -244,6 +245,16 @@ def listener(**args) -> CommandHandlerDecorator:
         bot.add_event_handler(handler, events.NewMessage(**args))
         if not ignore_edited:
             bot.add_event_handler(handler, events.MessageEdited(**args))
+        if command and pattern and sudo_pattern:
+            sudo_args = args.copy()
+            sudo_args["pattern"] = sudo_pattern
+            sudo_args["incoming"] = True
+            sudo_args["outgoing"] = False
+            sudo_handler = sudo_filter(permission_name, handler)
+            setattr(sudo_handler, HandlerList.PRIORITY_KEY, 50 + priority)
+            bot.add_event_handler(sudo_handler, events.NewMessage(**sudo_args))
+            if not ignore_edited:
+                bot.add_event_handler(sudo_handler, events.MessageEdited(**sudo_args))
 
         func.set_handler(handler)
         return func

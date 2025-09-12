@@ -69,7 +69,7 @@ async def edit_delete(
     message: "Message",
     text: str,
     time: int = 5,
-    parse_mode: str = None,
+    parse_mode: str = (),
     disable_web_page_preview: bool = None,
 ):
     sudo_users = get_sudo_list()

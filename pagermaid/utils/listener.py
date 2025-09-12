@@ -26,13 +26,15 @@ def sudo_filter(permission: str, handler):
             sudo_list = get_sudo_list()
             if from_id not in sudo_list:
                 if message.chat_id in sudo_list:
-                    return enforce_permission(message.chat.id, permission)
+                    return enforce_permission(message.chat_id, permission)
                 return False
             return enforce_permission(from_id, permission)
         except Exception:  # noqa
             return False
 
     async def handler2(context: "Message"):
+        if context.via_bot_id or context.out:
+            return
         if not await if_sudo(context):
             return
         return await handler(context)
