@@ -1,15 +1,34 @@
+import contextlib
 import subprocess
+import os
+import shlex
+
 from importlib.util import find_spec
 from sys import executable
 from asyncio import create_subprocess_shell
 from asyncio.subprocess import PIPE
 from typing import Optional
 
+try:
+    import pwd
+except ImportError:
+    pwd = None
+
 
 async def execute(command, pass_error=True):
     """Executes command and returns output, with the option of enabling stderr."""
+
+    shell_command = None
+    if pwd is not None:
+        with contextlib.suppress(Exception):
+            user_shell = pwd.getpwuid(os.getuid()).pw_shell
+            if user_shell:
+                shell_command = f"{user_shell} -l -c {shlex.quote(command)}"
+    if not shell_command:
+        shell_command = command
+
     executor = await create_subprocess_shell(
-        command, stdout=PIPE, stderr=PIPE, stdin=PIPE
+        shell_command, stdout=PIPE, stderr=PIPE, stdin=PIPE
     )
 
     stdout, stderr = await executor.communicate()
