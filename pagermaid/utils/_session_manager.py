@@ -46,7 +46,7 @@ class TDSession(BaseModel):
 
 class SessionConvert:
     PYROGRAM_VERSION = 3
-    TELETHON_VERSION = 7
+    TELETHON_VERSION = 8
 
     def __init__(self, session: TDSession):
         self.session = session
@@ -118,7 +118,7 @@ class SessionConvert:
         except sqlite3.DatabaseError as err:
             raise ValueError("Invalid Telethon session file") from err
 
-        if version == 7:
+        if version in (7, 8):
             session = TDSession(
                 dc_id=authorization[0],
                 test_mode=authorization[2] == 80,
@@ -142,7 +142,8 @@ class SessionConvert:
                     server_address TEXT, 
                     port INTEGER, 
                     auth_key BLOB,
-                    takeout_id INTEGER
+                    takeout_id INTEGER,
+                    tmp_auth_key BLOB
                 );
             """
         )
@@ -177,13 +178,14 @@ class SessionConvert:
         )
         conn.execute("INSERT INTO version VALUES (?);", (self.TELETHON_VERSION,))
         conn.execute(
-            "INSERT INTO sessions VALUES (?, ?, ?, ?, ?);",
+            "INSERT INTO sessions VALUES (?, ?, ?, ?, ?, ?);",
             (
                 self.session.dc_id,
                 str(self.session.server_address),
                 self.session.port,
                 self.session.auth_key,
                 0,
+                b'',
             ),
         )
         conn.commit()
