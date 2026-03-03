@@ -1,3 +1,10 @@
+import asyncio
+
+# Python 3.12+ no longer implicitly creates an event loop in get_event_loop().
+# Ensure one exists before TelegramClient is constructed at module level.
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
+
 import python_socks
 import pyromod.listen
 

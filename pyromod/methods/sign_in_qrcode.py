@@ -27,7 +27,7 @@ async def ainput(
     if isinstance(loop, asyncio.AbstractEventLoop):
         loop = loop
     else:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
     with ThreadPoolExecutor(1) as executor:
         func = functools.partial(getpass if hide else input, prompt)
