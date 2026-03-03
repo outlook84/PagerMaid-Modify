@@ -1,6 +1,6 @@
 [project]
 name = "PagerMaid-Modify"
-version = "0.1.0"
+version = "1.5.9"
 description = "Advanced Multi-Featured Telegram UserBot by telethon."
 authors = [
     {name = "xtaodada", email = "xtao@xtao.de"},
@@ -13,7 +13,7 @@ dependencies = [
     "pytz>=2024.2",
     "PyYAML>=6.0.2",
     "coloredlogs>=15.0.1",
-    "psutil>=6.0.0",
+    "psutil>=7.1.0",
     "httpx[socks]>=0.27.2",
     "apscheduler>=3.10.4",
     "sqlitedict>=2.1.0",
@@ -28,5 +28,6 @@ license = {text = "AGPL 3.0+"}
 
 [dependency-groups]
 dev = [
-    "ruff>=0.12.5",
+    "ruff>=0.14.0",
 ]
+
