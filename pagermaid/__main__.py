@@ -60,7 +60,7 @@ async def idle():
                 await task
             except asyncio.CancelledError:
                 break
-            except Exception as e:
+            except (OSError, ConnectionError, TimeoutError, asyncio.TimeoutError) as e:
                 logs.warning(f"{lang('telegram_disconnected')}: {type(e).__name__}: {e}")
 
             if getattr(bot, "_should_restart", False):
