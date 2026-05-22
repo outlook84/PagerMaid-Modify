@@ -56,12 +56,14 @@ async def idle():
             started_at = asyncio.get_running_loop().time()
             t = bot._run_until_disconnected()
             task = asyncio.create_task(t)
+            disconnected_logged = False
             try:
                 await task
             except asyncio.CancelledError:
                 break
             except (OSError, ConnectionError, TimeoutError, asyncio.TimeoutError) as e:
                 logs.warning(f"{lang('telegram_disconnected')}: {type(e).__name__}: {e}")
+                disconnected_logged = True
 
             if getattr(bot, "_should_restart", False):
                 break
@@ -69,7 +71,8 @@ async def idle():
             if asyncio.get_running_loop().time() - started_at >= STABLE_RETRY_RESET_AFTER:
                 retry_delay = INITIAL_RETRY_DELAY
 
-            logs.warning(lang("telegram_disconnected"))
+            if not disconnected_logged:
+                logs.warning(lang("telegram_disconnected"))
             retry_delay = await sleep_before_retry(retry_delay)
     except asyncio.CancelledError:
         if task and not task.done():
@@ -100,15 +103,15 @@ async def main():
     logs.info(lang("platform") + platform + lang("platform_load"))
     if not scheduler.running:
         scheduler.start()
-    retry_delay = INITIAL_RETRY_DELAY
-    while True:
-        try:
-            await console_bot()
-            break
-        except (OSError, ConnectionError, TimeoutError, asyncio.TimeoutError):
-            retry_delay = await sleep_before_retry(retry_delay)
-    logs.info(lang("start"))
     try:
+        retry_delay = INITIAL_RETRY_DELAY
+        while True:
+            try:
+                await console_bot()
+                break
+            except (OSError, ConnectionError, TimeoutError, asyncio.TimeoutError):
+                retry_delay = await sleep_before_retry(retry_delay)
+        logs.info(lang("start"))
         await idle()
     finally:
         if scheduler.running:
