@@ -20,6 +20,12 @@ path.insert(1, f"{working_dir}{sep}plugins")
 INITIAL_RETRY_DELAY = 5
 MAX_RETRY_DELAY = 120
 STABLE_RETRY_RESET_AFTER = 300
+RETRYABLE_CONNECTION_ERRORS = (
+    OSError,
+    ConnectionError,
+    TimeoutError,
+    asyncio.TimeoutError,
+)
 
 
 async def sleep_before_retry(delay):
@@ -48,7 +54,7 @@ async def idle():
                 try:
                     logs.info(lang("telegram_connecting"))
                     await bot.connect()
-                except (OSError, ConnectionError, TimeoutError, asyncio.TimeoutError) as e:
+                except RETRYABLE_CONNECTION_ERRORS as e:
                     logs.warning(f"{lang('telegram_connection_failed')}: {type(e).__name__}: {e}")
                     retry_delay = await sleep_before_retry(retry_delay)
                     continue
@@ -61,7 +67,7 @@ async def idle():
                 await task
             except asyncio.CancelledError:
                 break
-            except (OSError, ConnectionError, TimeoutError, asyncio.TimeoutError) as e:
+            except RETRYABLE_CONNECTION_ERRORS as e:
                 logs.warning(f"{lang('telegram_disconnected')}: {type(e).__name__}: {e}")
                 disconnected_logged = True
 
@@ -88,7 +94,7 @@ async def console_bot():
         logs.error(lang("telegram_auth_key_invalid"))
         SessionFileManager.safe_remove_session()
         exit()
-    except (OSError, ConnectionError, TimeoutError, asyncio.TimeoutError) as e:
+    except RETRYABLE_CONNECTION_ERRORS as e:
         logs.warning(f"{lang('telegram_connection_failed')}: {type(e).__name__}: {e}")
         raise
     bot.me = me
@@ -109,7 +115,7 @@ async def main():
             try:
                 await console_bot()
                 break
-            except (OSError, ConnectionError, TimeoutError, asyncio.TimeoutError):
+            except RETRYABLE_CONNECTION_ERRORS:
                 retry_delay = await sleep_before_retry(retry_delay)
         logs.info(lang("start"))
         await idle()
