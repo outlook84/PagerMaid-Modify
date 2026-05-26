@@ -20,6 +20,8 @@ dependencies = [
     "PyQRCode>=1.2.1",
     "PyPng",
     "python-socks[asyncio]>=2.8.1",
+    "pydantic>=2.13.4",
+    "uvloop>=0.21.0 ; sys_platform != 'win32'",
 ]
 requires-python = ">=3.10.0"
 readme = "README.md"
