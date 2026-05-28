@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 from os import sep
 from pathlib import Path
 from signal import signal as signal_fn, SIGINT, SIGTERM, SIGABRT
@@ -8,7 +9,8 @@ from telethon.errors.rpcerrorlist import AuthKeyError
 
 from pagermaid.common.reload import load_all
 from pagermaid.config import Config
-from pagermaid.dependence import scheduler
+from pagermaid.dependence import client as httpx_client, scheduler, sqlite
+from pagermaid.hook import HookRunner
 from pagermaid.services import bot
 from pagermaid.static import working_dir
 from pagermaid.utils import lang, logs, SessionFileManager
@@ -26,37 +28,60 @@ RETRYABLE_CONNECTION_ERRORS = (
     TimeoutError,
     asyncio.TimeoutError,
 )
+shutdown_hooks_ran = False
 
 
-async def sleep_before_retry(delay):
-    logs.warning(f"{lang('telegram_retrying')} {delay}s")
-    await asyncio.sleep(delay)
-    return min(delay * 2, MAX_RETRY_DELAY)
-
-
-async def idle():
-    task = None
-    idle_task = asyncio.current_task()
-    retry_delay = INITIAL_RETRY_DELAY
+def install_signal_handlers(shutdown_event, active_task_getter=None):
+    current_task = asyncio.current_task()
 
     def signal_handler(_, __):
+        shutdown_event.set()
+        task = active_task_getter() if active_task_getter else None
         if task and not task.done():
             task.cancel()
-        elif idle_task and not idle_task.done():
-            idle_task.cancel()
+        elif current_task and not current_task.done():
+            current_task.cancel()
 
     for s in (SIGINT, SIGTERM, SIGABRT):
         signal_fn(s, signal_handler)
 
+
+async def sleep_before_retry(delay, shutdown_event):
+    logs.warning(f"{lang('telegram_retrying')} {delay}s")
+    sleep_task = asyncio.create_task(asyncio.sleep(delay))
+    shutdown_task = asyncio.create_task(shutdown_event.wait())
+    try:
+        done, _ = await asyncio.wait(
+            {sleep_task, shutdown_task}, return_when=asyncio.FIRST_COMPLETED
+        )
+        if shutdown_task in done:
+            raise asyncio.CancelledError
+        await sleep_task
+    finally:
+        for task in (sleep_task, shutdown_task):
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(sleep_task, shutdown_task, return_exceptions=True)
+    return min(delay * 2, MAX_RETRY_DELAY)
+
+
+async def idle(shutdown_event):
+    task = None
+    retry_delay = INITIAL_RETRY_DELAY
+
+    install_signal_handlers(shutdown_event, lambda: task)
+
     try:
         while True:
+            if shutdown_event.is_set():
+                break
             if not bot.is_connected():
                 try:
                     logs.info(lang("telegram_connecting"))
                     await bot.connect()
                 except RETRYABLE_CONNECTION_ERRORS as e:
                     logs.warning(f"{lang('telegram_connection_failed')}: {type(e).__name__}: {e}")
-                    retry_delay = await sleep_before_retry(retry_delay)
+                    retry_delay = await sleep_before_retry(retry_delay, shutdown_event)
                     continue
 
             started_at = asyncio.get_running_loop().time()
@@ -79,7 +104,7 @@ async def idle():
 
             if not disconnected_logged:
                 logs.warning(lang("telegram_disconnected"))
-            retry_delay = await sleep_before_retry(retry_delay)
+            retry_delay = await sleep_before_retry(retry_delay, shutdown_event)
     except asyncio.CancelledError:
         if task and not task.done():
             task.cancel()
@@ -105,8 +130,34 @@ async def console_bot():
     await load_all()
 
 
+async def shutdown_services():
+    global shutdown_hooks_ran
+
+    if not shutdown_hooks_ran:
+        shutdown_hooks_ran = True
+        with contextlib.suppress(Exception):
+            await HookRunner.shutdown(None)
+
+    if scheduler.running:
+        with contextlib.suppress(Exception):
+            scheduler.shutdown()
+
+    if bot.is_connected():
+        with contextlib.suppress(Exception):
+            await bot.disconnect()
+
+    if not httpx_client.is_closed:
+        with contextlib.suppress(Exception):
+            await httpx_client.aclose()
+
+    with contextlib.suppress(Exception):
+        sqlite.close()
+
+
 async def main():
     logs.info(lang("platform") + platform + lang("platform_load"))
+    shutdown_event = asyncio.Event()
+    install_signal_handlers(shutdown_event)
     if not scheduler.running:
         scheduler.start()
     try:
@@ -116,21 +167,23 @@ async def main():
                 await console_bot()
                 break
             except RETRYABLE_CONNECTION_ERRORS:
-                retry_delay = await sleep_before_retry(retry_delay)
+                retry_delay = await sleep_before_retry(retry_delay, shutdown_event)
         logs.info(lang("start"))
-        await idle()
+        await idle(shutdown_event)
     finally:
-        if scheduler.running:
-            scheduler.shutdown()
-
-        if bot.is_connected():
-            try:
-                await bot.disconnect()
-            except ConnectionError:
-                pass
+        await shutdown_services()
 
         if getattr(bot, "_should_restart", False):
             exit(0)
 
 
-bot.loop.run_until_complete(main())
+try:
+    bot.loop.run_until_complete(main())
+finally:
+    pending = [task for task in asyncio.all_tasks(bot.loop) if not task.done()]
+    for task in pending:
+        task.cancel()
+    if pending:
+        bot.loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+    bot.loop.run_until_complete(bot.loop.shutdown_asyncgens())
+    bot.loop.close()
